@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<link rel="icon" href="data:,">
+<title>Sunset Sprint — a tiny platform adventure</title>
+<style>
+:root{color-scheme:dark;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#171c3a;color:#fff}body{display:grid;place-items:center;background:radial-gradient(ellipse at 50% 35%,#344477,#171a35 70%)}#game{position:relative;width:min(100vw,160vh);aspect-ratio:16/9;max-height:100vh;overflow:hidden;border:4px solid #fff3c2;box-shadow:0 0 0 5px #271d48,0 16px 70px #080a20;image-rendering:pixelated;background:#75c8ef}canvas{display:block;width:100%;height:100%;image-rendering:pixelated}#hud{position:absolute;inset:0 0 auto;display:flex;justify-content:space-between;padding:12px 18px;font-size:clamp(10px,1.5vw,16px);font-weight:900;letter-spacing:1px;text-shadow:2px 2px #33244e;pointer-events:none;color:#fff8d5}.brand{color:#fff4aa}.right{display:flex;gap:22px}.overlay{position:absolute;inset:0;display:grid;place-items:center;background:#171a3599;text-align:center;padding:20px}.card{width:min(440px,90%);padding:24px 24px 20px;background:#312957;border:4px solid #fff1bd;box-shadow:8px 8px #17172d;border-radius:4px}.card h1{font-size:clamp(25px,5vw,42px);line-height:1;margin:0 0 10px;color:#ffe777;text-shadow:3px 3px #a84c52}.card p{margin:8px 0 18px;line-height:1.55;font-size:clamp(11px,1.7vw,15px);color:#fff7d9}.card button{font:900 15px ui-monospace,monospace;color:#2c2445;background:#ffe777;border:0;border-bottom:5px solid #d88a55;padding:12px 24px;cursor:pointer;box-shadow:3px 3px #17172d}.card button:active{transform:translateY(3px);border-bottom-width:2px}.hint{font-size:11px!important;color:#c9c6ed!important;margin-top:16px!important}.hidden{display:none!important}.touch{display:none;position:absolute;bottom:12px;left:12px;right:12px;justify-content:space-between;align-items:end;pointer-events:none}.pad,.actions{display:flex;gap:8px}.touch button{pointer-events:auto;border:2px solid #fff8d9aa;border-radius:12px;background:#22234a99;color:white;font:900 22px ui-monospace,monospace;width:54px;height:50px;touch-action:none;user-select:none}.touch .jump{width:70px;height:62px;background:#b54c67bb}@media(max-width:700px),(pointer:coarse){.touch{display:flex}#hud{padding:9px 10px}.right{gap:9px}.card{padding:19px 16px}}
+</style>
+</head>
+<body>
+<main id="game" aria-label="Sunset Sprint platform game">
+<canvas id="screen" width="512" height="288" aria-label="Game screen"></canvas>
+<div id="hud"><span class="brand">✦ SUNSET SPRINT</span><span class="right"><span id="coinHud">COINS 00</span><span id="lifeHud">♥ 3</span><span id="timeHud">TIME 300</span></span></div>
+<div id="overlay" class="overlay"><section class="card"><h1 id="title">SUNSET<br>SPRINT</h1><p id="message">Run, leap, and scoop up the sky-coins on your way to the beacon!</p><button id="start">START ADVENTURE</button><p class="hint">MOVE: ← → / A D &nbsp; • &nbsp; JUMP: SPACE / ↑</p></section></div>
+<div class="touch" aria-label="Touch controls"><div class="pad"><button data-key="left" aria-label="Move left">◀</button><button data-key="right" aria-label="Move right">▶</button></div><div class="actions"><button class="jump" data-key="jump" aria-label="Jump">JUMP</button></div></div>
+</main>
+<script>
+(()=>{'use strict';
+const canvas=document.querySelector('#screen'),ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;
+const W=512,H=288,T=16, mapW=230, groundY=15;
+let tiles=new Map(),coins=[],enemies=[],particles=[],player,camera=0,score=0,lives=3,time=300,mode='title',last=0,invuln=0,checkpoint=0;
+const keys={left:false,right:false,jump:false};
+const keyTile=(x,y)=>x+','+y, put=(x,y,type)=>tiles.set(keyTile(x,y),type), get=(x,y)=>tiles.get(keyTile(x,y));
+function buildLevel(){tiles.clear();coins=[];enemies=[];particles=[];for(let x=0;x<mapW;x++)for(let y=groundY;y<18;y++)put(x,y,'ground');
+// little floating terraces and their golden question blocks
+for(const [x,y,len] of [[13,11,4],[32,9,3],[48,11,5],[68,10,3],[87,8,4],[108,11,4],[129,9,4],[151,11,4],[172,8,5],[195,10,4]])for(let i=0;i<len;i++)put(x+i,y,'brick');
+for(const [x,y] of [[16,9],[35,7],[51,9],[70,8],[90,6],[111,9],[132,7],[154,9],[175,6],[198,8]])put(x,y,'question');
+for(const [x,y] of [[22,11],[23,11],[24,11],[42,9],[43,9],[59,10],[60,10],[77,10],[78,10],[97,8],[98,8],[117,10],[118,10],[139,9],[140,9],[162,10],[163,10],[184,8],[185,8],[207,10],[208,10]])put(x,y,'brick');
+// gaps in the valley floor
+for(const [a,b] of [[26,29],[62,66],[101,105],[145,149],[188,192]])for(let x=a;x<=b;x++)for(let y=groundY;y<18;y++)tiles.delete(keyTile(x,y));
+// scattered rewards and roaming critters
+for(const [x,y] of [[5,13],[9,12],[14,9],[17,9],[20,12],[34,7],[38,12],[50,9],[54,12],[72,8],[81,12],[89,6],[94,12],[110,9],[115,12],[131,7],[136,12],[153,9],[159,12],[174,6],[180,12],[197,8],[203,12],[214,12]])coins.push({x:x*T+8,y:y*T+5,taken:false,bob:Math.random()*6});
+for(const x of [19,38,56,74,95,119,143,168,190,212])enemies.push({x:x*T,y:groundY*T-14,vx:x%2?-.35:.35,alive:true,flip:0});
+}
+function reset(){buildLevel();player={x:34,y:groundY*T-25,vx:0,vy:0,w:13,h:23,onGround:false,face:1};camera=0;score=0;time=300;invuln=0;checkpoint=0;updateHud()}
+const solid=(x,y)=>{const t=get(Math.floor(x/T),Math.floor(y/T));return t==='ground'||t==='brick'||t==='question'||t==='used'};
+function updateHud(){document.querySelector('#coinHud').textContent='COINS '+String(score).padStart(2,'0');document.querySelector('#lifeHud').textContent='♥ '+lives;document.querySelector('#timeHud').textContent='TIME '+Math.max(0,Math.ceil(time))}
+function burst(x,y,color,n=6){for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-.5)*2.8,vy:-Math.random()*2.5-0.5,life:25,color})}
+function hurt(){if(invuln>0)return;lives--;updateHud();if(lives<=0){finish(false);return}player.x=Math.max(checkpoint*T+8,player.x-35);player.y=80;player.vy=-2;player.vx=0;invuln=100}
+function finish(win){mode=win?'won':'over';document.querySelector('#overlay').classList.remove('hidden');document.querySelector('#title').innerHTML=win?'BEACON<br>REACHED!':'OH NO!';document.querySelector('#message').textContent=win?`You made it across the valley with ${score} sky-coins. What a lovely run!`:'The valley got the better of you this time. Ready for another try?';document.querySelector('#start').textContent=win?'PLAY AGAIN':'TRY AGAIN'}
+function start(){lives=3;reset();mode='play';document.querySelector('#overlay').classList.add('hidden');last=performance.now()}
+document.querySelector('#start').addEventListener('click',start);
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowleft','arrowright','arrowup',' ','a','d','w'].includes(k))e.preventDefault();if(k==='arrowleft'||k==='a')keys.left=true;if(k==='arrowright'||k==='d')keys.right=true;if(k==='arrowup'||k==='w'||k===' ')keys.jump=true;if((mode==='title'||mode==='over'||mode==='won')&&(k==='enter'||k===' '))start()});
+addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(k==='arrowleft'||k==='a')keys.left=false;if(k==='arrowright'||k==='d')keys.right=false;if(k==='arrowup'||k==='w'||k===' ')keys.jump=false});
+document.querySelectorAll('.touch button').forEach(b=>{const name=b.dataset.key;const down=e=>{e.preventDefault();keys[name]=true};const up=e=>{e.preventDefault();keys[name]=false};b.addEventListener('pointerdown',down);b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('pointerleave',up)});
+function update(dt){if(mode!=='play')return;time-=dt/60;if(time<=0){time=0;updateHud();finish(false);return}if(invuln>0)invuln-=dt;
+const accel=keys.left||keys.right?0.34:0.25;if(keys.left){player.vx-=accel*dt;player.face=-1}if(keys.right){player.vx+=accel*dt;player.face=1}if(!keys.left&&!keys.right)player.vx*=Math.pow(.78,dt);player.vx=Math.max(-2.45,Math.min(2.45,player.vx));
+if(keys.jump&&player.onGround){player.vy=-6.1;player.onGround=false;burst(player.x+player.w/2,player.y+player.h,'#fff1c2',3)}if(!keys.jump&&player.vy< -2)player.vy+=.16*dt;
+player.vy=Math.min(7,player.vy+.31*dt);
+// horizontal and vertical collision resolution
+player.x+=player.vx*dt;if(player.vx>0&&(solid(player.x+player.w,player.y+2)||solid(player.x+player.w,player.y+player.h-2))){player.x=Math.floor((player.x+player.w)/T)*T-player.w-.01;player.vx=0}if(player.vx<0&&(solid(player.x,player.y+2)||solid(player.x,player.y+player.h-2))){player.x=(Math.floor(player.x/T)+1)*T+.01;player.vx=0}
+player.y+=player.vy*dt;player.onGround=false;
+if(player.vy>=0&&(solid(player.x+2,player.y+player.h)||solid(player.x+player.w-2,player.y+player.h))){player.y=Math.floor((player.y+player.h)/T)*T-player.h;player.vy=0;player.onGround=true}
+if(player.vy<0){for(const px of [player.x+2,player.x+player.w-2]){let tx=Math.floor(px/T),ty=Math.floor(player.y/T);const t=get(tx,ty);if(['brick','question'].includes(t)){put(tx,ty,t==='question'?'used':'brick');player.y=(ty+1)*T;player.vy=.2;if(t==='question'){score++;updateHud();burst(tx*T+8,ty*T,'#ffe777',8)}else burst(tx*T+8,ty*T,'#bd7957',3);break}}}
+// enemies, stomp, collectible coins
+for(const en of enemies){if(!en.alive)continue;en.x+=en.vx*dt;if(solid(en.x+(en.vx>0?14:-1),en.y+13)||!solid(en.x+(en.vx>0?16:0),en.y+15))en.vx*=-1;const overlap=player.x<en.x+14&&player.x+player.w>en.x&&player.y<en.y+14&&player.y+player.h>en.y;if(overlap){if(player.vy>0&&player.y+player.h-en.y<11){en.alive=false;player.vy=-4;score++;updateHud();burst(en.x+7,en.y+7,'#ffc45c',7)}else hurt()}}
+for(const c of coins)if(!c.taken&&Math.abs(player.x+player.w/2-c.x)<14&&Math.abs(player.y+player.h/2-c.y)<18){c.taken=true;score++;updateHud();burst(c.x,c.y,'#ffe777',5)}
+if(player.y>H+60)hurt();if(player.x>checkpoint*T+200)checkpoint=Math.floor(player.x/T)-7;
+if(player.x> (mapW-7)*T)finish(true);
+camera=Math.max(0,Math.min(mapW*T-W,player.x-W*.36));for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=.12*dt;p.life-=dt}particles=particles.filter(p=>p.life>0);updateHud()}
+function rect(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(Math.round(x),Math.round(y),w,h)}
+function drawBackground(){let grad=ctx.createLinearGradient(0,0,0,H);grad.addColorStop(0,'#5bb9e7');grad.addColorStop(.68,'#b8e4dc');grad.addColorStop(1,'#ffd18e');ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+// distant sunset and cloud wisps
+rect(397,34,42,42,'#ffe58c');rect(405,28,26,54,'#ffeaa0');
+for(let i=0;i<6;i++){let x=((i*137-camera*.18)%(W+120)+W+120)%(W+120)-50,y=35+(i*31)%82;drawCloud(x,y,1+(i%2)*.25)}
+// layered rolling hills
+for(let layer=0;layer<3;layer++){const par=.12+layer*.1,base=188+layer*26;ctx.fillStyle=['#7ac8ae','#49aa95','#398678'][layer];ctx.beginPath();ctx.moveTo(0,H);for(let x=-30;x<=W+40;x+=8){let wx=x+camera*par;let yy=base+Math.sin(wx*.012+layer)*13+Math.sin(wx*.027+layer*4)*6;ctx.lineTo(x,yy)}ctx.lineTo(W,H);ctx.closePath();ctx.fill();for(let x=-20;x<W+30;x+=80){let hx=x+((camera*par)%80);rect(hx,base+3,28,4,'#a1dcc0')}}
+// far-off tiny clouds peaks / decorative flowers in foreground
+}
+function drawCloud(x,y,s){ctx.fillStyle='#f8fcde';rect(x,y+5*s,28*s,9*s);rect(x+5*s,y,15*s,12*s);rect(x+18*s,y+3*s,13*s,10*s);rect(x+3*s,y+14*s,26*s,3*s)}
+function drawTile(x,y,type){const px=x*T-camera,py=y*T;if(px<-T||px>W)return;
+if(type==='ground'){rect(px,py,T,T,'#a9664a');rect(px,py,T,4,'#6cc56f');rect(px,py+4,T,2,'#439c61');rect(px+1,py+7,6,3,'#c58158');rect(px+9,py+12,5,2,'#824b42');rect(px+7,py+6,2,2,'#754940')}
+if(type==='brick'){rect(px,py,T,T,'#c77855');rect(px+1,py+1,14,14,'#dc9562');rect(px,py+7,T,2,'#9b594c');rect(px+6,py,2,8,'#9b594c');rect(px+12,py+9,2,7,'#9b594c');rect(px+2,py+2,3,2,'#f2b77a')}
+if(type==='question'||type==='used'){rect(px,py,T,T,type==='used'?'#9b7958':'#e8a53d');rect(px+1,py+1,14,14,type==='used'?'#b18a5e':'#ffce57');rect(px+1,py+1,14,2,'#ffe68a');rect(px,py+13,16,3,'#a05f45');if(type==='question'){ctx.fillStyle='#fff4c4';ctx.font='bold 12px monospace';ctx.fillText('?',px+4,py+12)}else{rect(px+6,py+6,4,4,'#856344')}}}
+function drawWorld(){drawBackground();const start=Math.max(0,Math.floor(camera/T)-1),end=Math.min(mapW,Math.ceil((camera+W)/T)+1);for(const [k,v] of tiles){const [x,y]=k.split(',').map(Number);if(x>=start&&x<=end)drawTile(x,y,v)}
+// small soft flowers and grass tufts decorate exposed turf
+for(let x=start;x<end;x+=1){if(get(x,groundY)==='ground'&&x%3===1){const px=x*T-camera;rect(px+5,groundY*T-3,1,3,'#ffec9b');rect(px+3,groundY*T-2,2,1,'#f6b66f')}}
+for(const c of coins)if(!c.taken){let yy=c.y+Math.sin((performance.now()/150)+c.bob)*2;const cx=c.x-camera;rect(cx-3,yy-5,6,10,'#ca783a');rect(cx-2,yy-6,4,10,'#ffe270');rect(cx-1,yy-4,2,6,'#fff1a0')}
+for(const en of enemies)if(en.alive)drawEnemy(en);drawPlayer();drawBeacon();for(const p of particles)rect(p.x-camera,p.y,3,3,p.color)}
+function drawEnemy(en){const x=Math.round(en.x-camera),y=Math.round(en.y);rect(x+2,y+5,11,8,'#a94e57');rect(x+4,y+2,7,5,'#c66a5e');rect(x+3,y+11,4,3,'#713c50');rect(x+10,y+11,4,3,'#713c50');rect(x+6,y+5,2,2,'#fff5cf');rect(x+10,y+5,2,2,'#fff5cf');rect(x+7,y+6,1,2,'#392b45');rect(x+11,y+6,1,2,'#392b45');rect(x+5,y+1,2,2,'#8e3f52');rect(x+10,y+1,2,2,'#8e3f52')}
+function drawPlayer(){if(invuln>0&&Math.floor(invuln/5)%2===0)return;const x=Math.round(player.x-camera),y=Math.round(player.y),f=player.face;ctx.save();if(f<0){ctx.translate(x+player.w,0);ctx.scale(-1,1)}else ctx.translate(x,0);
+// tiny adventurer with a bright scarf and a jaunty cap
+rect(3,y+1,8,4,'#ba514e');rect(1,y+4,11,3,'#e76a54');rect(4,y+6,7,6,'#f1bd86');rect(9,y+8,2,2,'#352946');rect(2,y+11,10,7,'#287fa0');rect(0,y+12,4,6,'#efcb54');rect(8,y+12,4,6,'#f3d16b');rect(2,y+17,4,4,'#67415c');rect(8,y+17,4,4,'#67415c');rect(1,y+20,5,2,'#39456a');rect(8,y+20,5,2,'#39456a');rect(0,y+13,3,2,'#fff0a1');ctx.restore()}
+function drawBeacon(){const x=(mapW-7)*T-camera;if(x< -20||x>W+30)return;rect(x+12,65,3,groundY*T-65,'#f3e7c1');rect(x+15,67,22,14,'#f7d45c');rect(x+15,67,22,4,'#fff1a0');rect(x+18,75,5,3,'#e87566');rect(x+25,75,5,3,'#e87566');rect(x+12,groundY*T-4,10,4,'#78536b');rect(x+6,groundY*T-1,24,3,'#71516d');rect(x+20,45,7,12,'#fff2a1');rect(x+22,48,3,6,'#ffb15e')}
+function render(){ctx.clearRect(0,0,W,H);drawWorld();if(mode==='title'){/* scene stays animated behind the title */}}
+function frame(now){const dt=Math.min(2.5,(now-last)/16.667||1);last=now;if(mode==='play')update(dt);render();requestAnimationFrame(frame)}
+reset();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
