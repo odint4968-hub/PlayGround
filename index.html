@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#101622">
+<title>Frogo: The Withered Crown</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap');
+:root{color-scheme:dark;--ink:#eef0df;--gold:#e6bc72;--muted:#a9b0a7}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101622;color:var(--ink);font-family:'DM Sans',sans-serif}body{display:grid;place-items:center;touch-action:none}
+#frame{position:relative;width:min(100vw,160vh);height:min(100vh,62.5vw);aspect-ratio:16/10;overflow:hidden;background:#182330;box-shadow:0 24px 100px #0009}
+canvas{width:100%;height:100%;display:block;image-rendering:pixelated}
+#ui{position:absolute;inset:0;pointer-events:none}.topbar{position:absolute;top:3.2%;left:3.1%;right:3.1%;display:flex;align-items:flex-start;justify-content:space-between;text-shadow:0 2px 6px #10151de8}
+.brand{display:flex;gap:12px;align-items:center}.crest{height:36px;width:36px;border:1px solid #e6bc72aa;border-radius:50%;display:grid;place-items:center;color:#e6bc72;font-size:19px;background:#17202bc9}.brandname{font:700 12px 'DM Mono',monospace;letter-spacing:.18em;color:#e9dfc8}.subtitle{font-size:10px;letter-spacing:.12em;color:#aab1ab;margin-top:3px;text-transform:uppercase}
+.status{display:flex;gap:18px;align-items:center}.health{display:flex;gap:5px;font-size:17px;color:#ed8774;filter:drop-shadow(0 1px 3px #000)}.health i{font-style:normal}.health .lost{opacity:.27;filter:grayscale(1)}.relics{font:500 11px 'DM Mono',monospace;letter-spacing:.08em;color:#e6cf9b}.relics b{font-size:15px;color:#f0d484}
+.region{position:absolute;left:3.2%;top:13%;font:500 10px 'DM Mono',monospace;letter-spacing:.16em;color:#d5c7a2;text-shadow:0 2px 6px #000}.objective{position:absolute;top:12.6%;right:3.2%;max-width:250px;text-align:right;font-size:11px;line-height:1.55;color:#d3d5ca;text-shadow:0 1px 4px #000}.objective strong{display:block;color:#e9c47d;font-size:9px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:3px}
+#toast{position:absolute;left:50%;top:22%;transform:translate(-50%,-12px);padding:9px 16px;border:1px solid #e7c27466;background:#131c25de;color:#f1ddac;font:11px 'DM Mono',monospace;letter-spacing:.08em;opacity:0;transition:.3s;white-space:nowrap}#toast.show{opacity:1;transform:translate(-50%,0)}
+#dialogue{display:none;position:absolute;left:50%;bottom:8%;transform:translateX(-50%);width:min(580px,86%);padding:17px 20px 15px;background:#101821ed;border:1px solid #d5b66b88;box-shadow:0 12px 50px #0008;pointer-events:auto}.speaker{font:500 9px 'DM Mono',monospace;letter-spacing:.19em;color:#e6bc72;text-transform:uppercase;margin-bottom:8px}.words{font:14px/1.55 'Playfair Display',serif;color:#f0ecdd}.continue{font:9px 'DM Mono',monospace;letter-spacing:.12em;color:#929b9b;text-align:right;margin-top:10px}
+#mapPanel{display:none;position:absolute;inset:15% 13%;background:#101820ef;border:1px solid #d9bc7c99;padding:22px 26px;pointer-events:auto;box-shadow:0 10px 60px #0009}.mapTitle{font:700 24px 'Playfair Display',serif;color:#efdfb9}.mapSub{font:10px 'DM Mono',monospace;letter-spacing:.16em;color:#9daaa6;margin:5px 0 25px}.route{display:flex;align-items:center;gap:0;margin:20px 0}.stop{width:20%;position:relative;text-align:center}.stop:before{content:'';position:absolute;left:-50%;top:11px;width:100%;height:1px;background:#776a50}.stop:first-child:before{display:none}.node{position:relative;margin:0 auto 10px;border:1px solid #877957;border-radius:50%;width:23px;height:23px;background:#1a252b;display:grid;place-items:center;color:#c5b88f;font:10px 'DM Mono',monospace}.stop.done .node{background:#a98c54;color:#101820;border-color:#e4c47f}.stop.current .node{box-shadow:0 0 14px #efd28c88;border-color:#efd28c}.stop span{display:block;font:9px 'DM Mono',monospace;color:#c5c6b8;letter-spacing:.06em}.mapHint{margin-top:30px;font:11px/1.6 'DM Mono',monospace;color:#aab2a9}
+#intro,#ending{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(90deg,#101820dd,#10182099 58%,#10182066);pointer-events:auto}.introCard{width:min(520px,83%);margin-right:auto;margin-left:10%;}.eyebrow{font:500 10px 'DM Mono',monospace;letter-spacing:.22em;color:#dfbd78;margin-bottom:14px}.introCard h1{font:800 clamp(36px,6vw,68px)/.93 'Playfair Display',serif;letter-spacing:-.04em;margin:0;color:#f2ecdc}.introCard h1 em{font-style:normal;color:#e6bc72}.rule{width:48px;height:1px;background:#d9b66f;margin:23px 0}.introCard p{max-width:400px;color:#c1c8c0;font:14px/1.7 'DM Sans',sans-serif}.introCard .small{font:10px/1.7 'DM Mono',monospace;color:#9da7a4;letter-spacing:.04em;margin-top:20px}.button{display:inline-flex;align-items:center;gap:14px;margin-top:17px;border:1px solid #e1bf76;background:#cda863;color:#161d22;padding:12px 18px;font:700 10px 'DM Mono',monospace;letter-spacing:.15em;cursor:pointer;pointer-events:auto}.button:hover{background:#edcf8b}.button i{font-size:14px;font-style:normal}
+#ending{display:none;background:#101820e8}.endingCard{text-align:center;width:min(560px,85%)}.endingCard h2{font:700 clamp(34px,5vw,54px)/1.05 'Playfair Display',serif;margin:12px 0;color:#f1e7ce}.endingCard p{font-size:14px;line-height:1.7;color:#c0c8bf}.endingCard .button{margin-top:12px}
+#controls{position:absolute;bottom:3%;left:3%;right:3%;display:flex;justify-content:space-between;align-items:end;pointer-events:none}.hint{font:9px 'DM Mono',monospace;letter-spacing:.08em;color:#e0e0d4;text-shadow:0 2px 4px #000;opacity:.8}.hint kbd{font:inherit;border:1px solid #d6d1bc77;padding:4px 6px;margin-right:4px;background:#18212b99}.touch{display:none;gap:8px;pointer-events:auto}.touch button{width:49px;height:49px;border:1px solid #fff6;background:#17202bb8;color:#fff;font-size:18px;border-radius:50%;touch-action:none}.touch .wide{width:60px;border-radius:24px;font:9px 'DM Mono',monospace}
+@media(max-width:700px){#frame{width:100vw;height:100dvh;aspect-ratio:auto}.brandname{font-size:10px}.crest{width:30px;height:30px}.status{gap:9px}.health{font-size:14px}.region{top:11%}.objective{top:11%;max-width:170px;font-size:9px}.hint{display:none}.touch{display:flex}.introCard{margin-left:8%;width:86%}.introCard p{font-size:13px}#mapPanel{inset:20% 5%;padding:20px 12px}.stop span{font-size:7px}.mapTitle{font-size:21px}}
+</style>
+</head>
+<body><main id="frame"><canvas id="game" aria-label="Frogo: The Withered Crown"></canvas><div id="ui">
+<div class="topbar"><div class="brand"><div class="crest">♜</div><div><div class="brandname">THE WITHERED CROWN</div><div class="subtitle">A frog's last pilgrimage</div></div></div><div class="status"><div class="health" id="health"></div><div class="relics"><b id="count">0</b> / 5&nbsp; SEALS</div></div></div>
+<div class="region" id="region">THE OLD CITY</div><div class="objective" id="objective"><strong>The king's charge</strong>Find the five lost seals. Bring their truth home.</div><div id="toast"></div>
+<div id="dialogue"><div class="speaker" id="speaker"></div><div class="words" id="words"></div><div class="continue">[ E ] &nbsp; CONTINUE</div></div>
+<div id="mapPanel"><div class="mapTitle">The Known World</div><div class="mapSub">FIVE REALMS. ONE SILENT PLAGUE.</div><div class="route" id="route"></div><div class="mapHint">The seals are scattered across the realms. Search each land, face its guardian, and learn what the sick are trying to tell you.<br><br><span style="color:#e6bc72">M</span> close map &nbsp;·&nbsp; <span style="color:#e6bc72">A / D</span> move &nbsp;·&nbsp; <span style="color:#e6bc72">SPACE</span> leap &nbsp;·&nbsp; <span style="color:#e6bc72">J</span> strike</div></div>
+<div id="intro"><div class="introCard"><div class="eyebrow">A HAND-CRAFTED 2D ADVENTURE</div><h1>FROGO:<br><em>THE WITHERED</em><br>CROWN</h1><div class="rule"></div><p>A strange blight has emptied the old city of its laughter. Your home is gone. At the king's command, take up your blade and cross five forgotten realms to find the source of the sickness.</p><div class="small">A TALE OF LOSS, COURAGE &amp; THE THINGS WE LEAVE ALIVE</div><button class="button" id="start"><i>▶</i> BEGIN THE PILGRIMAGE</button><div class="small">MOVE A/D · LEAP SPACE · SLASH J · DASH K · MAP M</div></div></div>
+<div id="ending"><div class="endingCard"><div class="eyebrow">THE CITY REMEMBERS</div><h2>The cure was never a crown.</h2><p>You carried five truths through a dying world: the blight was born from the king's buried war, and the roots of the old city are still alive. Frogo returns not with a weapon, but with a promise—to heal what can be healed, and to remember everyone lost.</p><div class="small" style="font:10px 'DM Mono',monospace;color:#dfbd78;letter-spacing:.12em">THE WITHERED CROWN · END OF CHAPTER ONE</div><button class="button" id="again">↻ &nbsp; PLAY AGAIN</button></div></div>
+<div id="controls"><div class="hint"><kbd>A</kbd><kbd>D</kbd> MOVE &nbsp; <kbd>SPACE</kbd> LEAP &nbsp; <kbd>J</kbd> SWORD &nbsp; <kbd>K</kbd> DASH &nbsp; <kbd>M</kbd> MAP &nbsp; <kbd>E</kbd> TALK</div><div class="touch"><button data-key="left">◀</button><button data-key="right">▶</button><button class="wide" data-key="jump">LEAP</button><button class="wide" data-key="attack">SLASH</button><button class="wide" data-key="dash">DASH</button></div></div>
+</div></main>
+<script>
+(() => {
+'use strict';
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+const W=960,H=600, FLOOR=505, ZONE=1800, WORLD=ZONE*5;
+const realms=[
+ {name:'THE OLD CITY',sub:'The bell tolls for no one',sky:['#273844','#697c78'],ground:'#374c48',accent:'#c9a96f',seal:'Memory',boss:'Plague Warden'},
+ {name:'THE SUNKEN QUARTER',sub:'Where the river forgets',sky:['#182f3a','#4d7778'],ground:'#304f51',accent:'#7cc5b4',seal:'Mercy',boss:'Drowned Bailiff'},
+ {name:'THE ASHEN COURT',sub:'A kingdom under cinders',sky:['#392b32','#976b5b'],ground:'#594044',accent:'#e5a078',seal:'Courage',boss:'Cinder Knight'},
+ {name:'THE VERDANT WILD',sub:'The roots drink deep',sky:['#1b3634','#5b795c'],ground:'#345143',accent:'#abd184',seal:'Kinship',boss:'Thorn Matron'},
+ {name:'THE PALE MONASTERY',sub:'A prayer caught in stone',sky:['#323b4d','#879096'],ground:'#454d59',accent:'#d9d4bf',seal:'Truth',boss:'The Quiet Saint'}
+];
+let dpr=1,started=false,paused=false,dialogue=null,dialogueIndex=0,ended=false,toastTimer=0,last=0,shake=0;
+let keys={},touchKeys={},camera=0,player,worldObjects=[],particles=[],seals=0,visited=new Set(),gameTime=0;
+const saved=()=>{};
+function resize(){dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(canvas.clientWidth*dpr);canvas.height=Math.round(canvas.clientHeight*dpr)}
+new ResizeObserver(resize).observe(canvas);resize();
+function newGame(){started=true;paused=false;dialogue=null;ended=false;seals=0;camera=0;gameTime=0;visited=new Set();worldObjects=[];particles=[];
+ player={x:180,y:FLOOR-58,vx:0,vy:0,w:34,h:48,face:1,hp:5,maxHp:5,ground:false,attack:0,dash:0,dashCd:0,invuln:0,checkpoint:180};
+ for(let z=0;z<5;z++){
+   const base=z*ZONE;
+   // Platforms form a gentle, readable ascent and descent through each realm.
+   const plats=[
+     [base+365,425,135],[base+625,365,120],[base+915,405,165],[base+1210,338,128],[base+1515,410,120]
+   ];
+   for(const [x,y,w] of plats)worldObjects.push({type:'platform',x,y,w,h:18,z});
+   // A collectible seal and guardian in every land.
+   worldObjects.push({type:'seal',x:base+1575,y:360,z,got:false});
+   worldObjects.push({type:'enemy',x:base+735,y:FLOOR-42,w:42,h:42,hp:2,z,kind:'scourge',dir:-1,alive:true,cool:0});
+   worldObjects.push({type:'enemy',x:base+1340,y:FLOOR-48,w:46,h:48,hp:4,z,kind:'guardian',dir:-1,alive:true,cool:0,boss:true});
+   // Lanterns, benches, and emissive spores.
+   for(let i=0;i<5;i++)worldObjects.push({type:'lantern',x:base+155+i*340,y:FLOOR-70-(i%2)*58,z});
+   for(let i=0;i<13;i++)worldObjects.push({type:'spore',x:base+90+i*137,y:290+(i*71)%145,z,phase:i*1.7});
+ }
+ worldObjects.push({type:'npc',x:255,y:FLOOR-46,w:32,h:46,z:0,name:'King Louis',talked:false});
+ worldObjects.push({type:'npc',x:1670,y:FLOOR-44,w:30,h:44,z:0,name:'Sister Mirelle',talked:false});
+ worldObjects.push({type:'npc',x:ZONE+280,y:FLOOR-44,w:30,h:44,z:1,name:'River Child',talked:false});
+ worldObjects.push({type:'npc',x:ZONE*2+370,y:FLOOR-44,w:30,h:44,z:2,name:'Ash Keeper',talked:false});
+ worldObjects.push({type:'npc',x:ZONE*3+330,y:FLOOR-44,w:30,h:44,z:3,name:'Root-Tender',talked:false});
+ worldObjects.push({type:'npc',x:ZONE*4+300,y:FLOOR-44,w:30,h:44,z:4,name:'Silent Monk',talked:false});
+ updateHUD();showToast('THE KING HAS SUMMONED YOU');
+}
+function showToast(t){const el=$('toast');el.textContent=t;el.classList.add('show');toastTimer=2.5}
+function updateHUD(){ $('health').innerHTML=Array.from({length:player?.maxHp||5},(_,i)=>`<i class="${i<(player?.hp||5)?'':'lost'}">♥</i>`).join('');$('count').textContent=seals;const z=Math.min(4,Math.floor(player.x/ZONE));$('region').textContent=realms[z].name;$('objective').innerHTML=`<strong>${seals===5?'Return to the old city':'The king’s charge'}</strong>${seals===5?'Bring the five truths to the palace.':`Find the ${5-seals} remaining seal${5-seals===1?'':'s'} across the realms.`}`;updateMap()}
+function updateMap(){const z=Math.min(4,Math.floor((player?.x||0)/ZONE));$('route').innerHTML=realms.map((r,i)=>`<div class="stop ${i<seals?'done':''} ${i===z?'current':''}"><div class="node">${i<seals?'✓':i+1}</div><span>${r.name.replace('THE ','')}</span></div>`).join('')}
+const dialogues={
+ 'King Louis':[['King Louis','Frogo. The blight has crossed every border. Your family is among the fallen; I have no words that can mend that.'],['King Louis','Five realms hold five old seals. Find them, and find the truth behind this sickness. The city still has a chance.'],['King Louis','Please… bring back something better than another war.']],
+ 'Sister Mirelle':[['Sister Mirelle','The sick do not decay. They sleep, as if listening for a song. I hear it beneath the stones.']],
+ 'River Child':[['River Child','The river brought us a bell with no clapper. It rings anyway, when the moon is out.']],
+ 'Ash Keeper':[['Ash Keeper','We burned the old treaties. We thought that would end the war. The ash remembers.']],
+ 'Root-Tender':[['Root-Tender','The roots are not sick. They are trying to carry a message to the surface.']],
+ 'Silent Monk':[['Silent Monk','The king knows the first name of this blight. Ask him what he buried beneath his city.']]
+};
+function openDialogue(npc){dialogue=dialogues[npc.name]||[[npc.name,'May the old stones keep you.']];dialogueIndex=0;paused=true;renderDialogue();$('dialogue').style.display='block'}
+function renderDialogue(){const line=dialogue[dialogueIndex];$('speaker').textContent=line[0];$('words').textContent=line[1]}
+function advanceDialogue(){if(dialogueIndex<dialogue.length-1){dialogueIndex++;renderDialogue()}else{$('dialogue').style.display='none';dialogue=null;paused=false}}
+function setMap(open){paused=open;$('mapPanel').style.display=open?'block':'none'}
+function inputPressed(name){return !!(keys[name]||touchKeys[name])}
+window.addEventListener('keydown',e=>{const key=e.key.toLowerCase();if([' ','arrowleft','arrowright','arrowup','arrowdown'].includes(key))e.preventDefault();if(keys[key])return;keys[key]=true;if(key==='m'&&started&&!ended&&!dialogue)setMap($('mapPanel').style.display!=='block');if(key==='escape'){if(dialogue)advanceDialogue();else if($('mapPanel').style.display==='block')setMap(false)}if((key==='e'||key==='enter')&&dialogue)advanceDialogue();if(key==='e'&&started&&!paused&&!ended)interact();if(key==='j'&&started&&!paused)attack();if(key===' '&&started&&!paused)jump();if(key==='k'&&started&&!paused)dash();});
+window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});window.addEventListener('blur',()=>{keys={};touchKeys={}});
+document.querySelectorAll('.touch button').forEach(b=>{const k=b.dataset.key;const down=e=>{e.preventDefault();touchKeys[k]=true;if(k==='jump')jump();if(k==='attack')attack();if(k==='dash')dash()};const up=e=>{e.preventDefault();touchKeys[k]=false};b.addEventListener('pointerdown',down);b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('pointerleave',up)});
+$('start').onclick=()=>{ $('intro').style.display='none';newGame();};$('again').onclick=()=>{$('ending').style.display='none';newGame()};
+function jump(){if(player&&player.ground){player.vy=-625;player.ground=false;burst(player.x+player.w/2,player.y+player.h,'#c7c9a1',5)}}
+function dash(){if(!player||player.dashCd>0)return;player.dash=.18;player.dashCd=.8;player.vy=0;player.vx=player.face*670;player.invuln=Math.max(player.invuln,.23);burst(player.x+player.w/2,player.y+player.h/2,'#d7c084',8)}
+function attack(){if(!player||player.attack>0)return;player.attack=.25;player.vx*=.3;}
+function interact(){if(seals===5&&player.x<650){ended=true;$('ending').style.display='grid';return}const npc=worldObjects.find(o=>o.type==='npc'&&Math.abs((o.x+o.w/2)-(player.x+player.w/2))<78);if(npc){openDialogue(npc);return}const seal=worldObjects.find(o=>o.type==='seal'&&!o.got&&Math.abs(o.x-player.x)<90);if(seal)showToast('A SEAL HUMS NEARBY — TOUCH IT TO CLAIM IT')}
+function burst(x,y,color,n){for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-.5)*140,vy:-Math.random()*180,life:.45+Math.random()*.4,color,r:2+Math.random()*3})}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function drawBackdrop(z){
+ const r=realms[z],g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,r.sky[0]);g.addColorStop(1,r.sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ // A hazy moon and long, layered silhouettes give each realm its own skyline.
+ ctx.globalAlpha=.7;ctx.fillStyle=z===1?'#abd0c4':z===4?'#e1ddc7':'#ead4a2';ctx.beginPath();ctx.arc(754,112,38,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+ for(let layer=0;layer<3;layer++){
+  const step=layer===0?215:layer===1?150:118,parallax=.13+layer*.13,offset=-(camera*parallax)%step;
+  for(let i=-1;i<Math.ceil(W/step)+2;i++){
+   let x=i*step+offset;const seed=Math.abs(i*47+z*131+layer*11),h=110+(seed%105),base=FLOOR-layer*20;
+   ctx.fillStyle=layer===0?'#17242b55':layer===1?'#18252aaa':'#1a272dcc';
+   ctx.beginPath();ctx.moveTo(x,base);ctx.lineTo(x,base-h+28);ctx.lineTo(x+step*.5,base-h);ctx.lineTo(x+step,base-h+25);ctx.lineTo(x+step,base);ctx.closePath();ctx.fill();
+   // Mansard rooftops and narrow Parisian windows.
+   if(layer>0){ctx.strokeStyle=z===2?'#df997455':'#d7c58c44';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+step*.12,base-h+30);ctx.lineTo(x+step*.5,base-h);ctx.lineTo(x+step*.88,base-h+30);ctx.stroke();
+    ctx.fillStyle=z===3?'#d3c98d66':'#e4c47c55';for(let wy=base-h+48;wy<base-25;wy+=25){ctx.fillRect(x+step*.28,wy,5,10);ctx.fillRect(x+step*.67,wy,5,10)}
+   }
+   if(seed%3===0){ctx.fillStyle='#19252d';ctx.fillRect(x+step*.45,base-h-29,step*.1,31);ctx.beginPath();ctx.moveTo(x+step*.39,base-h-26);ctx.lineTo(x+step*.5,base-h-52);ctx.lineTo(x+step*.61,base-h-26);ctx.fill()}
+  }
+ }
+ // Distant suspended haze / drifting ash.
+ ctx.globalAlpha=.13;ctx.fillStyle=r.accent;ctx.fillRect(0,244,W,115);ctx.globalAlpha=1;
+}
+function drawGround(z){const r=realms[z];ctx.fillStyle=r.ground;ctx.fillRect(0,FLOOR,W,H-FLOOR);ctx.fillStyle='#d5bc8055';ctx.fillRect(0,FLOOR,W,3);
+ for(let x=-((camera*.6)%82);x<W+82;x+=82){ctx.fillStyle='#121f2355';ctx.fillRect(x,FLOOR+23,2,70);ctx.fillStyle='#d7bd7955';ctx.fillRect(x+20,FLOOR+20,22,2);ctx.fillRect(x+50,FLOOR+48,12,2)}
+ // broken paving and little grass tufts
+ for(let i=0;i<22;i++){let x=(i*127-camera*.75)%W;if(x<0)x+=W;ctx.fillStyle=i%2?'#172b2c':'#82907822';ctx.fillRect(x,FLOOR+5+(i%3)*7,18+(i%4)*4,2)}
+}
+function drawPlatform(o){const x=o.x-camera;if(x<-200||x>W+100)return;ctx.fillStyle='#182328';ctx.fillRect(x,o.y,o.w,o.h);ctx.fillStyle=realms[o.z].ground;ctx.fillRect(x,o.y,o.w,7);ctx.fillStyle=realms[o.z].accent+'88';ctx.fillRect(x,o.y,o.w,2);for(let xx=x+12;xx<x+o.w;xx+=31){ctx.strokeStyle='#c2b48333';ctx.beginPath();ctx.moveTo(xx,o.y+8);ctx.lineTo(xx-6,o.y+o.h);ctx.stroke()}}
+function drawLantern(o){const x=o.x-camera;if(x<-60||x>W+60)return;ctx.strokeStyle='#a7966f';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,FLOOR);ctx.lineTo(x,o.y);ctx.stroke();ctx.fillStyle='#d5a55f';ctx.fillRect(x-5,o.y,10,14);ctx.fillStyle='#ffe0a0';ctx.globalAlpha=.85+.15*Math.sin(gameTime*4+x);ctx.beginPath();ctx.arc(x,o.y+7,3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.13;ctx.fillStyle='#ffe0a0';ctx.beginPath();ctx.arc(x,o.y+7,27,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1}
+function drawSeal(o){if(o.got)return;const x=o.x-camera,y=o.y+Math.sin(gameTime*2.7+o.z)*8;if(x<-50||x>W+50)return;ctx.save();ctx.translate(x,y);ctx.rotate(gameTime*.35);ctx.shadowBlur=22;ctx.shadowColor=realms[o.z].accent;ctx.strokeStyle=realms[o.z].accent;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,17,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(0,-11);ctx.lineTo(9,0);ctx.lineTo(0,11);ctx.lineTo(-9,0);ctx.closePath();ctx.stroke();ctx.fillStyle='#f6dc9c';ctx.beginPath();ctx.arc(0,0,3,0,Math.PI*2);ctx.fill();ctx.restore()}
+function drawNPC(o){const x=o.x-camera;if(x<-70||x>W+70)return;const bob=Math.sin(gameTime*2+o.x)*2;ctx.fillStyle='#171d25';ctx.beginPath();ctx.ellipse(x+o.w/2,FLOOR-2,18,5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=o.name==='King Louis'?'#d7bd7b':o.z===3?'#89a86e':'#8ca5a0';ctx.fillRect(x+5,FLOOR-37+bob,23,34);ctx.fillStyle='#d9b795';ctx.beginPath();ctx.arc(x+16,FLOOR-43+bob,10,0,Math.PI*2);ctx.fill();ctx.fillStyle='#384552';ctx.fillRect(x+7,FLOOR-46+bob,19,4);if(Math.abs(o.x-player.x)<110){ctx.fillStyle='#f0ddaa';ctx.font='10px DM Mono,monospace';ctx.textAlign='center';ctx.fillText('E',x+16,FLOOR-63+bob);ctx.fillStyle='#b9c3bc';ctx.font='8px DM Mono,monospace';ctx.fillText(o.name.toUpperCase(),x+16,FLOOR-75+bob)}}
+function drawEnemy(o){if(!o.alive)return;const x=o.x-camera;if(x<-90||x>W+90)return;let bob=Math.sin(gameTime*4+o.x)*2;ctx.save();ctx.translate(x+o.w/2,FLOOR-o.h/2+bob);ctx.scale(o.dir,1);if(o.kind==='guardian'){ctx.fillStyle='#2a262d';ctx.beginPath();ctx.ellipse(0,0,25,27,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=realms[o.z].accent;ctx.fillRect(-18,-16,36,8);ctx.fillStyle='#f1d08b';ctx.fillRect(9,-7,4,4);ctx.fillStyle='#29262b';ctx.beginPath();ctx.moveTo(-20,-18);ctx.lineTo(-15,-34);ctx.lineTo(-8,-19);ctx.moveTo(8,-19);ctx.lineTo(17,-35);ctx.lineTo(18,-16);ctx.fill();ctx.fillStyle='#615663';ctx.fillRect(-20,17,40,9);ctx.fillStyle='#e07f6b';ctx.fillRect(-18,20,36*Math.max(0,o.hp/4),3)}else{ctx.fillStyle='#293335';ctx.beginPath();ctx.ellipse(0,3,19,17,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#9a6a67';ctx.beginPath();ctx.arc(0,-11,11,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d6c48c';ctx.fillRect(5,-13,4,3)}ctx.restore()}
+function drawPlayer(){const p=player,x=p.x-camera,y=p.y,mid=x+p.w/2;ctx.save();if(p.invuln>0&&Math.floor(gameTime*20)%2===0)ctx.globalAlpha=.45;
+ // short red traveling cape
+ ctx.fillStyle='#9a3e48';ctx.beginPath();ctx.moveTo(mid-5,y+15);ctx.lineTo(mid-18-p.face*3,y+41);ctx.lineTo(mid+3,y+35);ctx.closePath();ctx.fill();ctx.fillStyle='#c6a65e';ctx.fillRect(mid-8,y+13,17,6);
+ // plated frog body
+ ctx.fillStyle='#6d9a79';ctx.beginPath();ctx.ellipse(mid,y+28,15,19,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#bdd18e';ctx.beginPath();ctx.ellipse(mid,y+33,9,10,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#79a782';ctx.beginPath();ctx.ellipse(mid-8,y+8,7,9,0,0,Math.PI*2);ctx.ellipse(mid+8,y+8,7,9,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f1dc99';ctx.beginPath();ctx.arc(mid-7,y+7,3,0,Math.PI*2);ctx.arc(mid+7,y+7,3,0,Math.PI*2);ctx.fill();ctx.fillStyle='#28302d';ctx.beginPath();ctx.arc(mid-7+p.face*1.5,y+7,1.3,0,Math.PI*2);ctx.arc(mid+7+p.face*1.5,y+7,1.3,0,Math.PI*2);ctx.fill();
+ // helmet and little crest
+ ctx.fillStyle='#a9a58b';ctx.beginPath();ctx.arc(mid,y+3,12,Math.PI,Math.PI*2);ctx.lineTo(mid+11,y+7);ctx.lineTo(mid-11,y+7);ctx.closePath();ctx.fill();ctx.fillStyle='#d4c492';ctx.fillRect(mid-10,y+5,20,3);ctx.fillStyle='#8c8a78';ctx.fillRect(mid-2,y-9,4,10);
+ // sword swing arc / blade
+ const sx=mid+p.face*15,sy=y+27;if(p.attack>0){ctx.strokeStyle='#f8e4a9';ctx.lineWidth=3;ctx.beginPath();ctx.arc(mid+p.face*7,sy,27,p.face===1?-1.35:Math.PI-1.35,p.face===1?1.15:Math.PI+1.15);ctx.stroke();ctx.fillStyle='#e6e2ce';ctx.save();ctx.translate(sx,sy);ctx.rotate(p.face*.8);ctx.fillRect(0,-2,31,4);ctx.restore()}else{ctx.strokeStyle='#d8d6c5';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+p.face*16,sy-13);ctx.stroke();ctx.strokeStyle='#c49b58';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sx-3,sy+2);ctx.lineTo(sx+4,sy-6);ctx.stroke()}
+ ctx.fillStyle='#546e60';ctx.fillRect(mid-9,y+42,7,6);ctx.fillRect(mid+2,y+42,7,6);ctx.restore()}
+function drawParticles(dt){for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=220*dt;p.life-=dt;if(p.life<=0){particles.splice(i,1);continue}ctx.globalAlpha=clamp(p.life*2,0,1);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x-camera,p.y,p.r,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1}
+function drawWorld(){const z=clamp(Math.floor(player.x/ZONE),0,4);drawBackdrop(z);drawGround(z);
+ for(const o of worldObjects){if(o.type==='platform')drawPlatform(o);else if(o.type==='lantern')drawLantern(o);else if(o.type==='seal')drawSeal(o)}
+ for(const o of worldObjects)if(o.type==='npc')drawNPC(o);
+ for(const o of worldObjects)if(o.type==='enemy')drawEnemy(o);
+ drawPlayer();drawParticles(0); // particles are advanced by the simulation
+ // Foreground mist and border vignette
+ const fog=ctx.createLinearGradient(0,420,0,535);fog.addColorStop(0,'#a6b0a022');fog.addColorStop(1,'#a6b0a000');ctx.fillStyle=fog;ctx.fillRect(0,420,W,115);
+ const v=ctx.createRadialGradient(W/2,H/2,170,W/2,H/2,590);v.addColorStop(0,'#00000000');v.addColorStop(1,'#090d14aa');ctx.fillStyle=v;ctx.fillRect(0,0,W,H);
+}
+function update(dt){if(!started||paused||ended)return;gameTime+=dt;const p=player;
+ p.attack=Math.max(0,p.attack-dt);p.dashCd=Math.max(0,p.dashCd-dt);p.invuln=Math.max(0,p.invuln-dt);
+ const dir=(inputPressed('d')||inputPressed('arrowright')||touchKeys.right?1:0)-(inputPressed('a')||inputPressed('arrowleft')||touchKeys.left?1:0);
+ if(p.dash>0){p.dash-=dt;if(p.dash<=0)p.vx=p.face*245}
+ else {if(dir){p.vx+=dir*(p.ground?1550:950)*dt;p.vx=clamp(p.vx,-275,275);p.face=dir}else p.vx*=Math.pow(p.ground?.001:.22,dt);}
+ const oldY=p.y;p.x+=p.vx*dt;p.x=clamp(p.x,0,WORLD-p.w);p.vy+=1530*dt;p.y+=p.vy*dt;p.ground=false;
+ if(p.y+p.h>=FLOOR){p.y=FLOOR-p.h;p.vy=0;p.ground=true}
+ for(const o of worldObjects){if(o.type!=='platform')continue;const overlap=p.x+p.w>o.x&&p.x<o.x+o.w;if(overlap&&p.vy>=0&&oldY+p.h<=o.y+7&&p.y+p.h>=o.y){p.y=o.y-p.h;p.vy=0;p.ground=true}}
+ // Sword arcs damage anything immediately ahead; each swing can hit only once per enemy.
+ for(const o of worldObjects){if(o.type!=='enemy'||!o.alive)continue;o.cool=Math.max(0,o.cool-dt);const dx=(o.x+o.w/2)-(p.x+p.w/2),dy=(o.y+o.h/2)-(p.y+p.h/2);
+   if(p.attack>.08&&p.attack<.22&&Math.abs(dx)<74&&Math.abs(dy)<58&&dx*p.face>0&&o.cool<=0){o.hp--;o.cool=.4;o.x+=p.face*22;shake=5;burst(o.x+o.w/2,o.y+15,'#edc77c',8);if(o.hp<=0){o.alive=false;showToast(o.boss?'GUARDIAN DEFEATED':'THE BLIGHT RECEDES');burst(o.x+o.w/2,o.y+15,realms[o.z].accent,16)} }
+   if(!o.alive)continue;
+   if(o.boss&&Math.abs(dx)<270){o.dir=dx>0?1:-1;if(Math.abs(dx)>60)o.x+=o.dir*(o.kind==='guardian'?42:30)*dt;if(Math.abs(dx)<52&&o.cool<=0){o.cool=1.2;if(p.invuln<=0){p.hp--;p.invuln=1.1;p.vx=(dx>0?-1:1)*290;p.vy=-250;shake=8;burst(p.x+p.w/2,p.y+22,'#d98170',10);updateHUD();if(p.hp<=0)respawn()}}}
+   else if(!o.boss){o.x+=o.dir*24*dt;if(Math.abs(o.x-p.x)<115)o.dir=o.x<p.x?1:-1;if(Math.abs(dx)<35&&Math.abs(dy)<45&&p.invuln<=0){p.hp--;p.invuln=1;p.vx=dx>0?260:-260;p.vy=-240;updateHUD();if(p.hp<=0)respawn()}}
+ }
+ for(const o of worldObjects){if(o.type==='seal'&&!o.got&&Math.abs((o.x)-(p.x+p.w/2))<28&&Math.abs(o.y-(p.y+p.h/2))<42){o.got=true;seals++;visited.add(o.z);burst(o.x,o.y,realms[o.z].accent,22);showToast(`${realms[o.z].seal.toUpperCase()} SEAL FOUND`);updateHUD();if(seals===5)showToast('FIVE SEALS FOUND — RETURN TO THE KING')}}
+ const zone=Math.min(4,Math.floor((p.x+p.w/2)/ZONE));if(!visited.has('seen'+zone)){visited.add('seen'+zone);if(zone>0)showToast(realms[zone].sub.toUpperCase())}if(zone!==update.lastZone){update.lastZone=zone;updateHUD()}
+ camera=clamp(p.x+p.w/2-W*.43,0,WORLD-W);if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)$('toast').classList.remove('show')}
+ for(let i=particles.length-1;i>=0;i--){const a=particles[i];a.x+=a.vx*dt;a.y+=a.vy*dt;a.vy+=220*dt;a.life-=dt;if(a.life<=0)particles.splice(i,1)}
+}
+update.lastZone=-1;
+function respawn(){player.hp=5;player.x=Math.max(0,Math.floor(player.x/ZONE)*ZONE+130);player.y=FLOOR-player.h;player.vy=player.vx=0;player.invuln=1.8;showToast('FROGO RISES AGAIN');updateHUD()}
+function titleScene(){gameTime+=.008;drawBackdrop(0);drawGround(0);ctx.fillStyle='#19252d';ctx.fillRect(0,FLOOR-62,160,62);ctx.fillStyle='#d5bc8055';ctx.fillRect(0,FLOOR-62,160,3);player={x:170,y:FLOOR-58,w:34,h:48,face:1,attack:0,invuln:0};drawPlayer();player=null;ctx.fillStyle='#18252baa';ctx.fillRect(0,FLOOR+50,W,H);}
+function render(){const cw=canvas.width,ch=canvas.height;ctx.setTransform(cw/W,0,0,ch/H,0,0);if(started){if(shake>0){ctx.save();ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);shake*=.82;drawWorld();ctx.restore()}else drawWorld()}else titleScene();requestAnimationFrame(render)}
+function frame(t){const dt=Math.min(.034,(t-last)/1000||0);last=t;update(dt);requestAnimationFrame(frame)}
+requestAnimationFrame(render);requestAnimationFrame(frame);
+})();
+</script></body></html>
